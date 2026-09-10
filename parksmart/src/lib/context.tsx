@@ -13,6 +13,7 @@ import {
   PARKING_LOCATIONS,
   INITIAL_NOTIFICATIONS,
   generateAllSlots,
+  generateSlotsForParking,
 } from "@/lib/data";
 import {
   ParkingLocation,
@@ -29,6 +30,11 @@ import {
   windowsOverlap,
   generateSearchId,
 } from "@/lib/utils";
+import {
+  buildDemoSimulationEvents,
+  applySimulationEvent,
+  SimulatedSlotEvent,
+} from "./simulation";
 
 interface Toast {
   id: number;
@@ -75,6 +81,26 @@ interface AppContextType {
     arrival: string,
     durationHours: number
   ) => { selectable: boolean; reason: string };
+  partnerFacilities: string[];
+  addParking: (input: Omit<ParkingLocation, "id">) => string;
+  updateParking: (
+    id: string,
+    changes: Partial<
+      Pick<
+        ParkingLocation,
+        | "name"
+        | "pricePerHour"
+        | "dailyMax"
+        | "description"
+        | "securityLevel"
+        | "reservationAvailable"
+      >
+    >
+  ) => void;
+  simulationRunning: boolean;
+  startSimulation: () => void;
+  stopSimulation: () => void;
+  resetSimulation: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -102,9 +128,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [slotsByParking, setSlotsByParking] = useState<
     Record<string, ParkingSlot[]>
   >(() => generateAllSlots(PARKING_LOCATIONS));
+  const [partnerFacilities, setPartnerFacilities] = useState<string[]>([]);
+  const [simulationRunning, setSimulationRunning] = useState(true);
   const lastUpdateMinute = useRef(0);
   const toastId = useRef(0);
   const slotsRef = useRef(slotsByParking);
+  const simEventsRef = useRef<SimulatedSlotEvent[]>([]);
+  const simEventIndexRef = useRef(0);
 
   useEffect(() => {
     slotsRef.current = slotsByParking;
@@ -126,36 +156,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  // Simulated real-time slot updates: a single slot subtly changes every few
-  // seconds, driving live availability across the whole app.
+  // Simulated real-time parking-status updates: one slot changes every ~4
+  // seconds (available -> reserved -> occupied -> available), driving live
+  // availability across the whole app. Events are reusable, so live data from
+  // sensors/API could replace them later without rebuilding the UI.
   useEffect(() => {
+    if (!simulationRunning) return;
+
     const interval = setInterval(() => {
-      const current = slotsRef.current;
-      const ids = Object.keys(current);
-      if (ids.length === 0) return;
-      const pid = ids[Math.floor(Math.random() * ids.length)];
-      const list = current[pid];
-      if (!list || list.length === 0) return;
-      const idx = Math.floor(Math.random() * list.length);
-      const prevSlot = list[idx];
-      const r = Math.random();
-      let status = prevSlot.status;
-      if (status === "available") {
-        if (r < 0.45) status = "occupied";
-      } else if (status === "occupied") {
-        if (r < 0.2) status = "available";
-      } else if (status === "reserved") {
-        if (r < 0.12) status = "available";
+      let events = simEventsRef.current;
+      if (simEventIndexRef.current >= events.length) {
+        events = buildDemoSimulationEvents(slotsRef.current);
+        simEventsRef.current = events;
+        simEventIndexRef.current = 0;
       }
-      if (status === prevSlot.status) return;
-      const nextList = list.map((s, i) =>
-        i === idx
-          ? { ...s, status, reservedFrom: undefined, reservedTo: undefined, updatedAt: "just now" }
-          : s
-      );
-      const nextSlots = { ...current, [pid]: nextList };
-      setSlotsByParking(nextSlots);
+      const event = events[simEventIndexRef.current];
+      simEventIndexRef.current += 1;
+
+      const nextSlots = applySimulationEvent(slotsRef.current, event);
+      if (!nextSlots) return;
       slotsRef.current = nextSlots;
+      setSlotsByParking(nextSlots);
       recomputeParkingFromSlots(nextSlots);
       lastUpdateMinute.current += 1;
       setLastUpdated(
@@ -163,10 +184,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           lastUpdateMinute.current === 1 ? "" : "s"
         } ago`
       );
-    }, 9000);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [recomputeParkingFromSlots]);
+  }, [simulationRunning, recomputeParkingFromSlots]);
 
   const showToast = useCallback(
     (message: string, type: Toast["type"] = "success") => {
@@ -416,6 +437,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  // Partner: register a whole parking facility at once (name, address,
+  // location, total spaces, price, security, ...). The facility and its full
+  // slot layout are added to the existing ParkSmart parking system.
+  const addParking = useCallback((input: Omit<ParkingLocation, "id">) => {
+    const id = `pt-${Math.random().toString(36).slice(2, 8)}`;
+    const parking: ParkingLocation = { ...input, id };
+    setParkings((prev) => [...prev, parking]);
+    setSlotsByParking((prev) => ({
+      ...prev,
+      [id]: generateSlotsForParking(parking),
+    }));
+    setPartnerFacilities((prev) => [...prev, id]);
+    setNotifications((prev) => [
+      {
+        id: generateSearchId("NT"),
+        title: "Parking facility registered",
+        message: `${parking.name} is now live on ParkSmart with ${parking.totalSpaces} slots.`,
+        time: "just now",
+        type: "success",
+        read: false,
+      },
+      ...prev,
+    ]);
+    return id;
+  }, []);
+
+  const updateParking = useCallback(
+    (
+      id: string,
+      changes: Partial<
+        Pick<
+          ParkingLocation,
+          | "name"
+          | "pricePerHour"
+          | "dailyMax"
+          | "description"
+          | "securityLevel"
+          | "reservationAvailable"
+        >
+      >
+    ) => {
+      setParkings((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, ...changes } : p))
+      );
+    },
+    []
+  );
+
+  const startSimulation = useCallback(() => setSimulationRunning(true), []);
+  const stopSimulation = useCallback(() => setSimulationRunning(false), []);
+  const resetSimulation = useCallback(() => {
+    const rebuilt = generateAllSlots(parkings);
+    slotsRef.current = rebuilt;
+    setSlotsByParking(rebuilt);
+    recomputeParkingFromSlots(rebuilt);
+    simEventsRef.current = [];
+    simEventIndexRef.current = 0;
+    lastUpdateMinute.current = 0;
+    setLastUpdated("just now");
+  }, [parkings, recomputeParkingFromSlots]);
+
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,
     [notifications]
@@ -446,6 +528,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     getSlotCounts,
     canSelectSlot,
     clearToasts,
+    partnerFacilities,
+    addParking,
+    updateParking,
+    simulationRunning,
+    startSimulation,
+    stopSimulation,
+    resetSimulation,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

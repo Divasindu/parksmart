@@ -2,15 +2,16 @@
 
 import { Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ParkingSquare, Radio, Users, RefreshCw } from "lucide-react";
+import { ParkingSquare, Radio, Users } from "lucide-react";
 import { useApp } from "@/lib/context";
 import ParkingMap from "@/components/ParkingMapDynamic";
 import SlotMap from "@/components/SlotMap";
+import SimulationControl from "@/components/SimulationControl";
 import { DemoModeBadge, SimulationBadge } from "@/components/LiveDataIndicator";
 import { DESTINATIONS } from "@/lib/data";
 
 function SlotsContent() {
-  const { parkings, slotsByParking, getSlotCounts, showToast } = useApp();
+  const { parkings, slotsByParking, getSlotCounts } = useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const parkParam = searchParams.get("parking");
@@ -36,8 +37,8 @@ function SlotsContent() {
             Slot Management
           </h1>
           <p className="text-sm text-zinc-500">
-            Click a slot to mark it occupied, reserved or available. Drivers see
-            the change instantly.
+            Click a slot to mark it occupied or available. Drivers see the
+            change instantly.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -135,14 +136,9 @@ function SlotsContent() {
               {counts.occupied} + {counts.reserved} + {counts.available} ={" "}
               {counts.total} slots · always in sync
             </span>
-            <button
-              onClick={() =>
-                showToast("Live updates are always on — no action needed", "info")
-              }
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
-            >
-              <RefreshCw className="h-3.5 w-3.5" /> Live refresh
-            </button>
+            <span className="ml-auto">
+              <SimulationControl />
+            </span>
           </div>
 
           <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">

@@ -32,6 +32,7 @@ import SmartScore from "@/components/SmartScore";
 import LiveDataIndicator, {
   DemoModeBadge,
 } from "@/components/LiveDataIndicator";
+import SimulationControl from "@/components/SimulationControl";
 import ClientActions, { SaveButton } from "./ClientActions";
 import ParkingMap from "@/components/ParkingMapDynamic";
 import SlotMap from "@/components/SlotMap";
@@ -247,13 +248,18 @@ function ParkingDetailsContent({ id }: { id: string }) {
 
           {/* Live slot layout preview */}
           <div className="mt-8">
-            <h2 className="text-lg font-bold text-zinc-900">
-              Live parking slots
-            </h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              Choose an exact slot and reserve it — occupied and overlapping
-              reservations are blocked automatically.
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-zinc-900">
+                  Live parking slots
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Choose an exact slot and reserve it — occupied and overlapping
+                  reservations are blocked automatically.
+                </p>
+              </div>
+              <SimulationControl />
+            </div>
             <div className="mt-4">
               <SlotMap
                 parking={parking}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Car,
   ClipboardCheck,
+  Store,
   Mail,
   Lock,
   Eye,
@@ -16,7 +17,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/lib/context";
 
-type Role = "driver" | "attendant";
+type Role = "driver" | "attendant" | "partner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,6 +40,14 @@ export default function LoginPage() {
       if (role === "attendant") {
         showToast("Signed in as Parking Attendant", "success");
         router.push("/operator/slots");
+      } else if (role === "partner") {
+        showToast(
+          mode === "login"
+            ? "Welcome back, Partner!"
+            : "Partner account created successfully!",
+          "success"
+        );
+        router.push("/partner");
       } else {
         showToast(
           mode === "login" ? "Welcome back!" : "Account created successfully!",
@@ -122,6 +131,22 @@ export default function LoginPage() {
               </span>
             </button>
           </div>
+          <button
+            onClick={() => setRole("partner")}
+            className={`mt-2 flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-sm transition-colors ${
+              role === "partner"
+                ? "border-blue-400 bg-blue-50 text-blue-700 ring-2 ring-blue-100"
+                : "border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50"
+            }`}
+          >
+            <Store className="h-5 w-5" />
+            <span className="text-left">
+              <span className="block font-bold">Partner</span>
+              <span className="block text-[10px] text-zinc-500">
+                register & manage your own facility
+              </span>
+            </span>
+          </button>
         </div>
 
         <div className="mt-5 space-y-4">
@@ -167,6 +192,8 @@ export default function LoginPage() {
         >
           {role === "attendant" ? (
             <ShieldCheck className="h-5 w-5" />
+          ) : role === "partner" ? (
+            <Store className="h-5 w-5" />
           ) : mode === "login" ? (
             <LogIn className="h-5 w-5" />
           ) : (
@@ -176,6 +203,8 @@ export default function LoginPage() {
             ? "Processing…"
             : role === "attendant"
             ? "Continue as Attendant"
+            : role === "partner"
+            ? "Continue as Partner"
             : mode === "login"
             ? "Login"
             : "Create account"}

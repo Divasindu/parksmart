@@ -10,7 +10,6 @@ import {
   ArrowUp,
   UserRoundX,
   UserRoundPlus,
-  PauseCircle,
   XCircle,
 } from "lucide-react";
 import { ParkingLocation, ParkingSlot } from "@/lib/types";
@@ -82,7 +81,7 @@ export default function SlotMap({
     onSelect?.(slot.id);
   };
 
-  const applyStatus = (status: "occupied" | "available" | "reserved") => {
+  const applyStatus = (status: "occupied" | "available") => {
     if (!activeSlot) return;
     updateSlotStatus(parking.id, activeSlot.id, status);
     showToast(
@@ -280,12 +279,6 @@ export default function SlotMap({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700"
               >
                 <XCircle className="h-4 w-4" /> Mark Occupied
-              </button>
-              <button
-                onClick={() => applyStatus("reserved")}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-sm font-bold text-white hover:bg-amber-600"
-              >
-                <PauseCircle className="h-4 w-4" /> Mark Reserved
               </button>
               <button
                 onClick={() => applyStatus("available")}
