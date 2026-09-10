@@ -36,6 +36,8 @@ import {
   SimulatedSlotEvent,
 } from "./simulation";
 
+export type UserRole = "driver" | "attendant" | "partner";
+
 interface Toast {
   id: number;
   message: string;
@@ -53,6 +55,8 @@ interface AppContextType {
   lastUpdated: string;
   slotsByParking: Record<string, ParkingSlot[]>;
   toasts: Toast[];
+  userRole: UserRole | undefined;
+  setUserRole: (role: UserRole) => void;
   showToast: (message: string, type?: Toast["type"]) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
@@ -130,6 +134,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   >(() => generateAllSlots(PARKING_LOCATIONS));
   const [partnerFacilities, setPartnerFacilities] = useState<string[]>([]);
   const [simulationRunning, setSimulationRunning] = useState(true);
+  const [userRole, setUserRoleState] = useState<UserRole | undefined>(undefined);
   const lastUpdateMinute = useRef(0);
   const toastId = useRef(0);
   const slotsRef = useRef(slotsByParking);
@@ -487,6 +492,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const startSimulation = useCallback(() => setSimulationRunning(true), []);
   const stopSimulation = useCallback(() => setSimulationRunning(false), []);
+  const setUserRole = useCallback((role: UserRole) => {
+    setUserRoleState(role);
+  }, []);
   const resetSimulation = useCallback(() => {
     const rebuilt = generateAllSlots(parkings);
     slotsRef.current = rebuilt;
@@ -535,6 +543,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     startSimulation,
     stopSimulation,
     resetSimulation,
+    userRole,
+    setUserRole,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

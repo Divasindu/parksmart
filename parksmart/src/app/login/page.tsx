@@ -21,7 +21,7 @@ type Role = "driver" | "attendant" | "partner";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { showToast } = useApp();
+  const { showToast, setUserRole } = useApp();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [role, setRole] = useState<Role>("driver");
   const [email, setEmail] = useState("");
@@ -37,6 +37,7 @@ export default function LoginPage() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
+      setUserRole(role);
       if (role === "attendant") {
         showToast("Signed in as Parking Attendant", "success");
         router.push("/operator/slots");

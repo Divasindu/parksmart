@@ -31,7 +31,8 @@ const USER_LINKS = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { unreadCount, notifications, markAllNotificationsRead } = useApp();
+  const { unreadCount, notifications, markAllNotificationsRead, userRole } =
+    useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -197,12 +198,14 @@ export default function Navbar() {
                 <Settings className="h-5 w-5" />
               </Link>
 
-              <Link
-                href="/operator"
-                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-              >
-                Operator
-              </Link>
+              {(userRole === "attendant" || userRole === "partner") && (
+                <Link
+                  href="/operator"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                >
+                  Operator
+                </Link>
+              )}
             </>
           )}
 
@@ -249,7 +252,9 @@ export default function Navbar() {
                 { href: "/history", label: "History" },
                 { href: "/favorites", label: "Favorites" },
                 { href: "/private-parking", label: "Private Parking" },
-                { href: "/operator", label: "Operator" },
+                ...(userRole === "attendant" || userRole === "partner"
+                  ? [{ href: "/operator", label: "Operator" }]
+                  : []),
                 { href: "/login", label: "Login / Sign up" },
                 { href: "/settings", label: "Settings" },
               ]

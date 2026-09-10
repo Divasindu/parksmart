@@ -37,6 +37,7 @@ export default function DashboardPage() {
     destination,
     showToast,
     preferences,
+    userRole,
   } = useApp();
 
   const active = reservations.filter(
@@ -255,12 +256,14 @@ export default function DashboardPage() {
               >
                 Private Parking
               </Link>
-              <Link
-                href="/operator"
-                className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-center text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
-              >
-                Operator Demo
-              </Link>
+              {(userRole === "attendant" || userRole === "partner") && (
+                <Link
+                  href="/operator"
+                  className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-center text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
+                  Operator Demo
+                </Link>
+              )}
             </div>
           </section>
         </div>
